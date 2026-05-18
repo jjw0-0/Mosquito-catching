@@ -1,3 +1,7 @@
 .omc/
 .omx/
 .DS_Store
+.pytest_cache/
+
+outputs*/
+tests/
