@@ -1,0 +1,876 @@
+{
+  "config": {
+    "zip_path": "/Users/jjw/Downloads/open.zip",
+    "out_dir": "outputs_advisor",
+    "profile": "quick",
+    "folds": 5,
+    "seed": 20260518,
+    "residual_base": "accel_c0.5",
+    "no_submissions": false
+  },
+  "model_specs": {
+    "ridge": {
+      "weighting": null,
+      "target_space": "global"
+    },
+    "extra_trees": {
+      "weighting": null,
+      "target_space": "global"
+    },
+    "extra_trees_near": {
+      "weighting": "near_gauss",
+      "target_space": "global"
+    },
+    "hgb": {
+      "weighting": null,
+      "target_space": "global"
+    },
+    "hgb_near": {
+      "weighting": "near_gauss",
+      "target_space": "global"
+    },
+    "hgb_local_trap": {
+      "weighting": "trap",
+      "target_space": "local"
+    }
+  },
+  "best_base_name": "accel_c0.5",
+  "best_physical_name": "accel_c0.6",
+  "physical_scores": {
+    "last": {
+      "hit": 0.0049,
+      "mean_distance": 0.05104617245139094,
+      "median_distance": 0.046244695669744686,
+      "p90_distance": 0.10262900535102862,
+      "p95_distance": 0.10747799786012838,
+      "p99_distance": 0.10779949580335775
+    },
+    "cv_endpoint_k1": {
+      "hit": 0.5788,
+      "mean_distance": 0.012940614806511964,
+      "median_distance": 0.008324749397913483,
+      "p90_distance": 0.026507618696522038,
+      "p95_distance": 0.04479980799912869,
+      "p99_distance": 0.09399103571404857
+    },
+    "cv_avgdiff_k1": {
+      "hit": 0.5788,
+      "mean_distance": 0.012940614806511964,
+      "median_distance": 0.008324749397913483,
+      "p90_distance": 0.026507618696522038,
+      "p95_distance": 0.04479980799912869,
+      "p99_distance": 0.09399103571404857
+    },
+    "cv_endpoint_k2": {
+      "hit": 0.5267,
+      "mean_distance": 0.015201205751882116,
+      "median_distance": 0.00941091978185226,
+      "p90_distance": 0.03279434560166627,
+      "p95_distance": 0.05348373955536716,
+      "p99_distance": 0.10122654157663229
+    },
+    "cv_avgdiff_k2": {
+      "hit": 0.5267,
+      "mean_distance": 0.015201205751882116,
+      "median_distance": 0.00941091978185226,
+      "p90_distance": 0.03279434560166627,
+      "p95_distance": 0.05348373955536716,
+      "p99_distance": 0.10122654157663229
+    },
+    "cv_endpoint_k3": {
+      "hit": 0.4706,
+      "mean_distance": 0.017307257866218423,
+      "median_distance": 0.010742389767548037,
+      "p90_distance": 0.038824291797843545,
+      "p95_distance": 0.05997405199976143,
+      "p99_distance": 0.10499681009300138
+    },
+    "cv_avgdiff_k3": {
+      "hit": 0.4706,
+      "mean_distance": 0.017307257866218423,
+      "median_distance": 0.010742389767548037,
+      "p90_distance": 0.038824291797843545,
+      "p95_distance": 0.05997405199976143,
+      "p99_distance": 0.10499681009300138
+    },
+    "cv_endpoint_k4": {
+      "hit": 0.4184,
+      "mean_distance": 0.019121882529062047,
+      "median_distance": 0.012108922361123889,
+      "p90_distance": 0.04346251166110418,
+      "p95_distance": 0.06482670757130342,
+      "p99_distance": 0.1081767990567503
+    },
+    "cv_avgdiff_k4": {
+      "hit": 0.4184,
+      "mean_distance": 0.019121882529062047,
+      "median_distance": 0.012108922361123889,
+      "p90_distance": 0.04346251166110418,
+      "p95_distance": 0.06482670757130342,
+      "p99_distance": 0.1081767990567503
+    },
+    "cv_endpoint_k5": {
+      "hit": 0.3729,
+      "mean_distance": 0.020721079980075326,
+      "median_distance": 0.01346833334448036,
+      "p90_distance": 0.04695692278091127,
+      "p95_distance": 0.06736958371406294,
+      "p99_distance": 0.10834491308481221
+    },
+    "cv_avgdiff_k5": {
+      "hit": 0.3729,
+      "mean_distance": 0.020721079980075326,
+      "median_distance": 0.013468333344480367,
+      "p90_distance": 0.04695692278091127,
+      "p95_distance": 0.06736958371406294,
+      "p99_distance": 0.10834491308481221
+    },
+    "cv_endpoint_k6": {
+      "hit": 0.3347,
+      "mean_distance": 0.02216756175540662,
+      "median_distance": 0.014829233489591672,
+      "p90_distance": 0.049753473142294245,
+      "p95_distance": 0.06924628783488243,
+      "p99_distance": 0.10958442400334949
+    },
+    "cv_avgdiff_k6": {
+      "hit": 0.3347,
+      "mean_distance": 0.022167561755406618,
+      "median_distance": 0.014829233489591672,
+      "p90_distance": 0.049753473142294245,
+      "p95_distance": 0.06924628783488243,
+      "p99_distance": 0.10958442400334949
+    },
+    "cv_endpoint_k7": {
+      "hit": 0.3053,
+      "mean_distance": 0.02339715474665501,
+      "median_distance": 0.016187539978604885,
+      "p90_distance": 0.051582300528752775,
+      "p95_distance": 0.07075382059749132,
+      "p99_distance": 0.10868555670013928
+    },
+    "cv_avgdiff_k7": {
+      "hit": 0.3053,
+      "mean_distance": 0.02339715474665501,
+      "median_distance": 0.016187539978604885,
+      "p90_distance": 0.051582300528752775,
+      "p95_distance": 0.07075382059749132,
+      "p99_distance": 0.10868555670013928
+    },
+    "cv_endpoint_k8": {
+      "hit": 0.2812,
+      "mean_distance": 0.02440970984322739,
+      "median_distance": 0.017473059346649094,
+      "p90_distance": 0.05366051250131521,
+      "p95_distance": 0.07093292571592795,
+      "p99_distance": 0.10781005652355431
+    },
+    "cv_avgdiff_k8": {
+      "hit": 0.2812,
+      "mean_distance": 0.02440970984322739,
+      "median_distance": 0.017473059346649094,
+      "p90_distance": 0.05366051250131521,
+      "p95_distance": 0.07093292571592795,
+      "p99_distance": 0.10781005652355431
+    },
+    "cv_endpoint_k9": {
+      "hit": 0.2631,
+      "mean_distance": 0.02521209109295554,
+      "median_distance": 0.018521967773980318,
+      "p90_distance": 0.05418601646043445,
+      "p95_distance": 0.07072980623337187,
+      "p99_distance": 0.10833827793730746
+    },
+    "cv_avgdiff_k9": {
+      "hit": 0.2631,
+      "mean_distance": 0.02521209109295554,
+      "median_distance": 0.018521967773980318,
+      "p90_distance": 0.05418601646043445,
+      "p95_distance": 0.07072980623337187,
+      "p99_distance": 0.10833827793730746
+    },
+    "cv_endpoint_k10": {
+      "hit": 0.2463,
+      "mean_distance": 0.025874309266468446,
+      "median_distance": 0.019383372796590213,
+      "p90_distance": 0.055088811768672453,
+      "p95_distance": 0.07093883356871886,
+      "p99_distance": 0.10651767807246014
+    },
+    "cv_avgdiff_k10": {
+      "hit": 0.2463,
+      "mean_distance": 0.025874309266468446,
+      "median_distance": 0.019383372796590213,
+      "p90_distance": 0.055088811768672453,
+      "p95_distance": 0.07093883356871886,
+      "p99_distance": 0.10651767807246014
+    },
+    "accel_c-1": {
+      "hit": 0.5267,
+      "mean_distance": 0.015201205751882116,
+      "median_distance": 0.00941091978185226,
+      "p90_distance": 0.03279434560166627,
+      "p95_distance": 0.05348373955536716,
+      "p99_distance": 0.10122654157663229
+    },
+    "accel_c0": {
+      "hit": 0.5788,
+      "mean_distance": 0.012940614806511964,
+      "median_distance": 0.008324749397913483,
+      "p90_distance": 0.026507618696522038,
+      "p95_distance": 0.04479980799912869,
+      "p99_distance": 0.09399103571404857
+    },
+    "accel_c0.25": {
+      "hit": 0.594,
+      "mean_distance": 0.01281885200666622,
+      "median_distance": 0.008199810921171322,
+      "p90_distance": 0.026591042908621455,
+      "p95_distance": 0.044664776026888786,
+      "p99_distance": 0.09406497937815886
+    },
+    "accel_c0.4": {
+      "hit": 0.5976,
+      "mean_distance": 0.012841715596102648,
+      "median_distance": 0.008142896188783923,
+      "p90_distance": 0.026786899531986635,
+      "p95_distance": 0.044401508976240955,
+      "p99_distance": 0.09354054840924315
+    },
+    "accel_c0.46": {
+      "hit": 0.5988,
+      "mean_distance": 0.012870298237901482,
+      "median_distance": 0.00814972362331166,
+      "p90_distance": 0.02680980088373922,
+      "p95_distance": 0.044466217496029886,
+      "p99_distance": 0.09300269823994892
+    },
+    "accel_c0.5": {
+      "hit": 0.5993,
+      "mean_distance": 0.012895199082665005,
+      "median_distance": 0.008124356741730156,
+      "p90_distance": 0.026857676805604875,
+      "p95_distance": 0.0446603617971491,
+      "p99_distance": 0.09219985329824316
+    },
+    "accel_c0.54": {
+      "hit": 0.6005,
+      "mean_distance": 0.012924704203192416,
+      "median_distance": 0.00814087391521627,
+      "p90_distance": 0.027035328443536115,
+      "p95_distance": 0.04468358283020234,
+      "p99_distance": 0.09235285140917983
+    },
+    "accel_c0.56": {
+      "hit": 0.6002,
+      "mean_distance": 0.01294115423238175,
+      "median_distance": 0.008140701212897835,
+      "p90_distance": 0.027231325870791398,
+      "p95_distance": 0.04465137225098734,
+      "p99_distance": 0.09305578068407194
+    },
+    "accel_c0.58": {
+      "hit": 0.6007,
+      "mean_distance": 0.012958719901359685,
+      "median_distance": 0.008147489268893103,
+      "p90_distance": 0.027273012433773273,
+      "p95_distance": 0.04462209169957224,
+      "p99_distance": 0.09305992436197157
+    },
+    "accel_c0.6": {
+      "hit": 0.6008,
+      "mean_distance": 0.012977391640824794,
+      "median_distance": 0.008157605671781998,
+      "p90_distance": 0.02734279206314311,
+      "p95_distance": 0.04483857871279176,
+      "p99_distance": 0.0929762554699145
+    },
+    "accel_c0.62": {
+      "hit": 0.6007,
+      "mean_distance": 0.012997160214283394,
+      "median_distance": 0.00817357388456859,
+      "p90_distance": 0.027401973889583976,
+      "p95_distance": 0.044931412814060344,
+      "p99_distance": 0.09289477136153013
+    },
+    "accel_c0.64": {
+      "hit": 0.5997,
+      "mean_distance": 0.013018014564540738,
+      "median_distance": 0.008190436045891859,
+      "p90_distance": 0.027557752161217964,
+      "p95_distance": 0.0449866022773196,
+      "p99_distance": 0.09281908798746752
+    },
+    "accel_c0.75": {
+      "hit": 0.5953,
+      "mean_distance": 0.013151349482911348,
+      "median_distance": 0.008231352271957367,
+      "p90_distance": 0.02799878234666555,
+      "p95_distance": 0.04598601218563389,
+      "p99_distance": 0.0935591638169019
+    },
+    "accel_c1": {
+      "hit": 0.5826,
+      "mean_distance": 0.01356120947820485,
+      "median_distance": 0.008341950461248122,
+      "p90_distance": 0.029280199214479476,
+      "p95_distance": 0.04831746710796867,
+      "p99_distance": 0.09535250645217608
+    },
+    "accel_c1.5": {
+      "hit": 0.5512,
+      "mean_distance": 0.014746180128298233,
+      "median_distance": 0.00894699302172483,
+      "p90_distance": 0.03188372920625161,
+      "p95_distance": 0.05303762977234596,
+      "p99_distance": 0.10305275825423174
+    },
+    "accel_c2": {
+      "hit": 0.5131,
+      "mean_distance": 0.016299012086093915,
+      "median_distance": 0.009717632226236167,
+      "p90_distance": 0.03570663175357333,
+      "p95_distance": 0.05730609619628187,
+      "p99_distance": 0.1107499820937168
+    },
+    "accel_c3": {
+      "hit": 0.4237,
+      "mean_distance": 0.020173869877381206,
+      "median_distance": 0.01199413181321032,
+      "p90_distance": 0.043695751464975584,
+      "p95_distance": 0.069714115195402,
+      "p99_distance": 0.13995022965575624
+    },
+    "linear_m3": {
+      "hit": 0.5124,
+      "mean_distance": 0.015762841700751762,
+      "median_distance": 0.009738147206499313,
+      "p90_distance": 0.03402876688497063,
+      "p95_distance": 0.05531308612028438,
+      "p99_distance": 0.10546414084898798
+    },
+    "quad_m3": {
+      "hit": 0.4237,
+      "mean_distance": 0.020173869877380856,
+      "median_distance": 0.011994131813224312,
+      "p90_distance": 0.04369575146497509,
+      "p95_distance": 0.06971411519533291,
+      "p99_distance": 0.13995022965574885
+    },
+    "linear_m4": {
+      "hit": 0.4354,
+      "mean_distance": 0.01901075227792127,
+      "median_distance": 0.011705434974505536,
+      "p90_distance": 0.04327550885223273,
+      "p95_distance": 0.06658623025631295,
+      "p99_distance": 0.11465273309832147
+    },
+    "quad_m4": {
+      "hit": 0.4569,
+      "mean_distance": 0.019086094973786154,
+      "median_distance": 0.011030969595250031,
+      "p90_distance": 0.04442917554018704,
+      "p95_distance": 0.07103106219584569,
+      "p99_distance": 0.12298441637278594
+    },
+    "linear_m5": {
+      "hit": 0.3631,
+      "mean_distance": 0.022362237279472168,
+      "median_distance": 0.014019583541036693,
+      "p90_distance": 0.05203764128859089,
+      "p95_distance": 0.07664049434336831,
+      "p99_distance": 0.12189078278415445
+    },
+    "quad_m5": {
+      "hit": 0.4355,
+      "mean_distance": 0.02013932410835284,
+      "median_distance": 0.011695701259167707,
+      "p90_distance": 0.04951739237997497,
+      "p95_distance": 0.07444773217187742,
+      "p99_distance": 0.1260872860299145
+    },
+    "linear_m6": {
+      "hit": 0.3005,
+      "mean_distance": 0.025815317295075885,
+      "median_distance": 0.016569775264467523,
+      "p90_distance": 0.059309368351687985,
+      "p95_distance": 0.08585409648090526,
+      "p99_distance": 0.13252851489678982
+    },
+    "quad_m6": {
+      "hit": 0.389,
+      "mean_distance": 0.02205051141695973,
+      "median_distance": 0.012879099424559606,
+      "p90_distance": 0.05387578029082837,
+      "p95_distance": 0.0779961496009981,
+      "p99_distance": 0.1380243660112258
+    },
+    "linear_m7": {
+      "hit": 0.2454,
+      "mean_distance": 0.02938683422055375,
+      "median_distance": 0.019709484620100352,
+      "p90_distance": 0.0664607605617346,
+      "p95_distance": 0.09353012322910612,
+      "p99_distance": 0.14154996688711863
+    },
+    "quad_m7": {
+      "hit": 0.3455,
+      "mean_distance": 0.024217142782087434,
+      "median_distance": 0.014420763352316526,
+      "p90_distance": 0.05778514096850635,
+      "p95_distance": 0.08235115890219631,
+      "p99_distance": 0.14464127577602293
+    },
+    "linear_m8": {
+      "hit": 0.2065,
+      "mean_distance": 0.032927133000686365,
+      "median_distance": 0.02298982317917046,
+      "p90_distance": 0.07395137354601365,
+      "p95_distance": 0.09939284515277512,
+      "p99_distance": 0.14876050571083724
+    },
+    "quad_m8": {
+      "hit": 0.3056,
+      "mean_distance": 0.0265295193086111,
+      "median_distance": 0.0164028996668283,
+      "p90_distance": 0.06253655482876314,
+      "p95_distance": 0.08689289336090365,
+      "p99_distance": 0.1507573743472305
+    },
+    "linear_m9": {
+      "hit": 0.1742,
+      "mean_distance": 0.03635990366592963,
+      "median_distance": 0.026305708248650576,
+      "p90_distance": 0.08106497060499697,
+      "p95_distance": 0.10590790866049035,
+      "p99_distance": 0.15744084286958412
+    },
+    "quad_m9": {
+      "hit": 0.2699,
+      "mean_distance": 0.028740294405161522,
+      "median_distance": 0.018219091245188872,
+      "p90_distance": 0.06762731333577533,
+      "p95_distance": 0.0921902427233258,
+      "p99_distance": 0.15930100465549452
+    },
+    "linear_m10": {
+      "hit": 0.1492,
+      "mean_distance": 0.03961375040924931,
+      "median_distance": 0.02955093590158634,
+      "p90_distance": 0.08710728407702907,
+      "p95_distance": 0.11206660903724626,
+      "p99_distance": 0.16339187887086912
+    },
+    "quad_m10": {
+      "hit": 0.2355,
+      "mean_distance": 0.030908205384031568,
+      "median_distance": 0.020084771584067206,
+      "p90_distance": 0.07092444687164852,
+      "p95_distance": 0.09759241034895558,
+      "p99_distance": 0.16308807358120522
+    },
+    "linear_m11": {
+      "hit": 0.1273,
+      "mean_distance": 0.0427032318134974,
+      "median_distance": 0.03239582343683945,
+      "p90_distance": 0.09290137620332896,
+      "p95_distance": 0.1184583540093207,
+      "p99_distance": 0.17000210685186345
+    },
+    "quad_m11": {
+      "hit": 0.2123,
+      "mean_distance": 0.033061223547768095,
+      "median_distance": 0.022038803897314812,
+      "p90_distance": 0.07486885470080297,
+      "p95_distance": 0.10325413523045913,
+      "p99_distance": 0.16745327932635456
+    }
+  },
+  "fold_scores": {
+    "ridge/fold_1": {
+      "hit": 0.5445,
+      "mean_distance": 0.013737229970123528,
+      "median_distance": 0.009244968247444408,
+      "p90_distance": 0.02710735304901767,
+      "p95_distance": 0.04416400988178346,
+      "p99_distance": 0.08026755336757153
+    },
+    "extra_trees/fold_1": {
+      "hit": 0.612,
+      "mean_distance": 0.012372475306589888,
+      "median_distance": 0.007858989607400866,
+      "p90_distance": 0.026249880596305314,
+      "p95_distance": 0.04273664740542348,
+      "p99_distance": 0.07800234108739636
+    },
+    "extra_trees_near/fold_1": {
+      "hit": 0.6335,
+      "mean_distance": 0.012186774491751979,
+      "median_distance": 0.00751076793951861,
+      "p90_distance": 0.025192027199400422,
+      "p95_distance": 0.04429922505405883,
+      "p99_distance": 0.08065405204837728
+    },
+    "hgb/fold_1": {
+      "hit": 0.613,
+      "mean_distance": 0.01239814550638848,
+      "median_distance": 0.007942330443975987,
+      "p90_distance": 0.02677511283884576,
+      "p95_distance": 0.0415294963577284,
+      "p99_distance": 0.07432529557460059
+    },
+    "hgb_near/fold_1": {
+      "hit": 0.6465,
+      "mean_distance": 0.012003214478257583,
+      "median_distance": 0.007293473432741161,
+      "p90_distance": 0.02558731623151825,
+      "p95_distance": 0.04387402435710577,
+      "p99_distance": 0.07927095070274986
+    },
+    "hgb_local_trap/fold_1": {
+      "hit": 0.6645,
+      "mean_distance": 0.012012605764886868,
+      "median_distance": 0.0069148976971547035,
+      "p90_distance": 0.02562107967916866,
+      "p95_distance": 0.045530142551508695,
+      "p99_distance": 0.08490461499512239
+    },
+    "ridge/fold_2": {
+      "hit": 0.551,
+      "mean_distance": 0.013240127446853194,
+      "median_distance": 0.009038634360258632,
+      "p90_distance": 0.025923836907161633,
+      "p95_distance": 0.04168735146163109,
+      "p99_distance": 0.07885989215019715
+    },
+    "extra_trees/fold_2": {
+      "hit": 0.6235,
+      "mean_distance": 0.012034049664270616,
+      "median_distance": 0.007613305839926423,
+      "p90_distance": 0.024878710123142415,
+      "p95_distance": 0.040651622013414206,
+      "p99_distance": 0.08152557624190203
+    },
+    "extra_trees_near/fold_2": {
+      "hit": 0.6315,
+      "mean_distance": 0.011834299564476215,
+      "median_distance": 0.007249392526569678,
+      "p90_distance": 0.024348775487704536,
+      "p95_distance": 0.040202773946041756,
+      "p99_distance": 0.08250761038698169
+    },
+    "hgb/fold_2": {
+      "hit": 0.6125,
+      "mean_distance": 0.012192829772277746,
+      "median_distance": 0.007907618263019207,
+      "p90_distance": 0.025561289632802565,
+      "p95_distance": 0.03929395093153481,
+      "p99_distance": 0.07620437939840202
+    },
+    "hgb_near/fold_2": {
+      "hit": 0.649,
+      "mean_distance": 0.011644768138975303,
+      "median_distance": 0.007149335052774536,
+      "p90_distance": 0.0236715818151099,
+      "p95_distance": 0.04120481350942002,
+      "p99_distance": 0.08112000851959653
+    },
+    "hgb_local_trap/fold_2": {
+      "hit": 0.6735,
+      "mean_distance": 0.01143541394416258,
+      "median_distance": 0.006611619297417123,
+      "p90_distance": 0.02452159796222424,
+      "p95_distance": 0.04066745853863624,
+      "p99_distance": 0.08382138260445722
+    },
+    "ridge/fold_3": {
+      "hit": 0.5395,
+      "mean_distance": 0.013375899552273758,
+      "median_distance": 0.009364159915808058,
+      "p90_distance": 0.025839369471025934,
+      "p95_distance": 0.03856649754926423,
+      "p99_distance": 0.0839427387152525
+    },
+    "extra_trees/fold_3": {
+      "hit": 0.611,
+      "mean_distance": 0.011998941604744786,
+      "median_distance": 0.007733902466021255,
+      "p90_distance": 0.02442922868383488,
+      "p95_distance": 0.03752944978618461,
+      "p99_distance": 0.08199010111019864
+    },
+    "extra_trees_near/fold_3": {
+      "hit": 0.6255,
+      "mean_distance": 0.011769502461706853,
+      "median_distance": 0.007480130710574311,
+      "p90_distance": 0.023859310114245316,
+      "p95_distance": 0.03824041197286892,
+      "p99_distance": 0.08492821196680655
+    },
+    "hgb/fold_3": {
+      "hit": 0.589,
+      "mean_distance": 0.012310191697289545,
+      "median_distance": 0.008207298910107866,
+      "p90_distance": 0.025250781121953992,
+      "p95_distance": 0.03827757515667439,
+      "p99_distance": 0.08052848979409219
+    },
+    "hgb_near/fold_3": {
+      "hit": 0.6375,
+      "mean_distance": 0.011652993007427604,
+      "median_distance": 0.007388904122474203,
+      "p90_distance": 0.023481349991693486,
+      "p95_distance": 0.03881515546176783,
+      "p99_distance": 0.08463904618258583
+    },
+    "hgb_local_trap/fold_3": {
+      "hit": 0.661,
+      "mean_distance": 0.011542034069055818,
+      "median_distance": 0.007088212018495603,
+      "p90_distance": 0.02444722989846677,
+      "p95_distance": 0.03913339910944424,
+      "p99_distance": 0.087508481093138
+    },
+    "ridge/fold_4": {
+      "hit": 0.5405,
+      "mean_distance": 0.013226856830883829,
+      "median_distance": 0.009264572661803307,
+      "p90_distance": 0.026895128362107997,
+      "p95_distance": 0.03784645478122373,
+      "p99_distance": 0.07443810640825453
+    },
+    "extra_trees/fold_4": {
+      "hit": 0.6195,
+      "mean_distance": 0.011909415957566385,
+      "median_distance": 0.007817405313228297,
+      "p90_distance": 0.02496907992739393,
+      "p95_distance": 0.037180725170272946,
+      "p99_distance": 0.07070861793696784
+    },
+    "extra_trees_near/fold_4": {
+      "hit": 0.6385,
+      "mean_distance": 0.011718396332564662,
+      "median_distance": 0.007621162420036555,
+      "p90_distance": 0.024103892807958067,
+      "p95_distance": 0.037527065157926275,
+      "p99_distance": 0.07201611892354934
+    },
+    "hgb/fold_4": {
+      "hit": 0.5945,
+      "mean_distance": 0.012245499231976802,
+      "median_distance": 0.00825039411136541,
+      "p90_distance": 0.025598171285929044,
+      "p95_distance": 0.039264960438651575,
+      "p99_distance": 0.07015866279168674
+    },
+    "hgb_near/fold_4": {
+      "hit": 0.6505,
+      "mean_distance": 0.011488714274268955,
+      "median_distance": 0.007299915060886735,
+      "p90_distance": 0.023871693018189442,
+      "p95_distance": 0.037928873759363414,
+      "p99_distance": 0.07281431734197079
+    },
+    "hgb_local_trap/fold_4": {
+      "hit": 0.6735,
+      "mean_distance": 0.011346867588593835,
+      "median_distance": 0.006977610718586452,
+      "p90_distance": 0.023786681709822115,
+      "p95_distance": 0.03860545445978779,
+      "p99_distance": 0.07562617116384651
+    },
+    "ridge/fold_5": {
+      "hit": 0.547,
+      "mean_distance": 0.013333376479973603,
+      "median_distance": 0.009189345910410493,
+      "p90_distance": 0.026160627271979476,
+      "p95_distance": 0.03993757000299271,
+      "p99_distance": 0.08416446325178076
+    },
+    "extra_trees/fold_5": {
+      "hit": 0.615,
+      "mean_distance": 0.012179767302023846,
+      "median_distance": 0.007816255511635648,
+      "p90_distance": 0.025691935738787326,
+      "p95_distance": 0.03944609794451497,
+      "p99_distance": 0.0837762499526871
+    },
+    "extra_trees_near/fold_5": {
+      "hit": 0.637,
+      "mean_distance": 0.011962092751396711,
+      "median_distance": 0.007500449658238553,
+      "p90_distance": 0.024920754148846553,
+      "p95_distance": 0.03876277778684887,
+      "p99_distance": 0.08672952860626884
+    },
+    "hgb/fold_5": {
+      "hit": 0.6055,
+      "mean_distance": 0.012325041686500525,
+      "median_distance": 0.008043739138400723,
+      "p90_distance": 0.02691591255122685,
+      "p95_distance": 0.03895007132240288,
+      "p99_distance": 0.07868995183285016
+    },
+    "hgb_near/fold_5": {
+      "hit": 0.6425,
+      "mean_distance": 0.011793082685891345,
+      "median_distance": 0.007350547720582301,
+      "p90_distance": 0.025132381063605498,
+      "p95_distance": 0.038952437362973415,
+      "p99_distance": 0.08625022012474157
+    },
+    "hgb_local_trap/fold_5": {
+      "hit": 0.658,
+      "mean_distance": 0.011673577845577298,
+      "median_distance": 0.0069386568107284025,
+      "p90_distance": 0.024823322377899783,
+      "p95_distance": 0.04113264291096916,
+      "p99_distance": 0.08746230916714348
+    }
+  },
+  "model_scores": {
+    "ridge": {
+      "hit": 0.5445,
+      "mean_distance": 0.013382698056021582,
+      "median_distance": 0.00919885237284981,
+      "p90_distance": 0.026337287531072173,
+      "p95_distance": 0.04042541226311478,
+      "p99_distance": 0.08088270725966717
+    },
+    "extra_trees": {
+      "hit": 0.6162,
+      "mean_distance": 0.012098929967039103,
+      "median_distance": 0.007759213910357868,
+      "p90_distance": 0.025195298281094448,
+      "p95_distance": 0.03970960818547518,
+      "p99_distance": 0.08152550995637282
+    },
+    "extra_trees_near": {
+      "hit": 0.6332,
+      "mean_distance": 0.011894213120379285,
+      "median_distance": 0.0074657213780054505,
+      "p90_distance": 0.024591831157332,
+      "p95_distance": 0.039959129627632914,
+      "p99_distance": 0.08318410613110092
+    },
+    "hgb": {
+      "hit": 0.6029,
+      "mean_distance": 0.01229434157888662,
+      "median_distance": 0.008067594003327391,
+      "p90_distance": 0.025932501137751706,
+      "p95_distance": 0.0394433728195104,
+      "p99_distance": 0.07719852558760189
+    },
+    "hgb_near": {
+      "hit": 0.6452,
+      "mean_distance": 0.011716554516964158,
+      "median_distance": 0.007290637654583827,
+      "p90_distance": 0.02438725972807839,
+      "p95_distance": 0.03975094219250128,
+      "p99_distance": 0.0815336969907424
+    },
+    "hgb_local_trap": {
+      "hit": 0.6661,
+      "mean_distance": 0.011602099842455279,
+      "median_distance": 0.0068880165785008465,
+      "p90_distance": 0.024712430128805474,
+      "p95_distance": 0.041614717917708134,
+      "p99_distance": 0.08590471987332425
+    }
+  },
+  "shrinks": {
+    "ridge": {
+      "shrink": 0.3199999999999999,
+      "hit": 0.6076,
+      "mean_distance": 0.012591493472212422,
+      "median_distance": 0.008129168599446346,
+      "p90_distance": 0.025831097108770833,
+      "p95_distance": 0.042973228517483926,
+      "p99_distance": 0.08930915562592591
+    },
+    "extra_trees": {
+      "shrink": 0.5799999999999998,
+      "hit": 0.6251,
+      "mean_distance": 0.012122022662048842,
+      "median_distance": 0.007713787691033595,
+      "p90_distance": 0.02495398378467228,
+      "p95_distance": 0.04099640920906216,
+      "p99_distance": 0.08629148090652664
+    },
+    "extra_trees_near": {
+      "shrink": 0.7399999999999998,
+      "hit": 0.6359,
+      "mean_distance": 0.01196076059105311,
+      "median_distance": 0.007485616582076813,
+      "p90_distance": 0.024662232222890285,
+      "p95_distance": 0.040502064578120216,
+      "p99_distance": 0.0857644602127106
+    },
+    "hgb": {
+      "shrink": 0.4599999999999999,
+      "hit": 0.6242,
+      "mean_distance": 0.01209248860893975,
+      "median_distance": 0.007803748082796451,
+      "p90_distance": 0.024997644103902306,
+      "p95_distance": 0.040874709537653243,
+      "p99_distance": 0.0845923930466172
+    },
+    "hgb_near": {
+      "shrink": 0.8799999999999999,
+      "hit": 0.6462,
+      "mean_distance": 0.01173277764659814,
+      "median_distance": 0.007318577081616837,
+      "p90_distance": 0.024566377888463286,
+      "p95_distance": 0.04047624114798771,
+      "p99_distance": 0.08269595653760725
+    },
+    "hgb_local_trap": {
+      "shrink": 0.94,
+      "hit": 0.6672,
+      "mean_distance": 0.011623024920771918,
+      "median_distance": 0.006892610059202069,
+      "p90_distance": 0.024770773707359767,
+      "p95_distance": 0.041553722842497184,
+      "p99_distance": 0.08585957971325427
+    }
+  },
+  "blend": {
+    "hit": 0.6672,
+    "weights": [
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ],
+    "names": [
+      "physical_accel_c0.5",
+      "ridge_shrink",
+      "extra_trees_raw",
+      "extra_trees_shrink",
+      "extra_trees_near_raw",
+      "extra_trees_near_shrink",
+      "hgb_raw",
+      "hgb_shrink",
+      "hgb_near_raw",
+      "hgb_near_shrink",
+      "hgb_local_trap_raw",
+      "hgb_local_trap_shrink"
+    ],
+    "summary": {
+      "hit": 0.6672,
+      "mean_distance": 0.011623024920771918,
+      "median_distance": 0.006892610059202069,
+      "p90_distance": 0.024770773707359767,
+      "p95_distance": 0.041553722842497184,
+      "p99_distance": 0.08585957971325427
+    }
+  }
+}
