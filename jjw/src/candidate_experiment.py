@@ -14,11 +14,20 @@ from sklearn.model_selection import KFold
 from .candidate_bank import build_candidate_bank, candidate_group_features
 from .data import load_competition_data, write_submission
 from .features import _trajectory_basis, build_features
-from .metrics import distances, score_summary
+from .metrics import score_summary
 
 
 def _read_submission(path: str | Path) -> np.ndarray:
     return pd.read_csv(path)[["x", "y", "z"]].to_numpy(dtype=np.float64)
+
+
+def _require_existing(paths: list[str | Path], purpose: str) -> None:
+    missing = [str(Path(p)) for p in paths if not Path(p).exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"Missing required artifact(s) for {purpose}: {missing}. "
+            "Regenerate the referenced OOF/submission files before running this experiment."
+        )
 
 
 def _safe_float_from(pattern: str, text: str, default: float = 0.0) -> float:
@@ -326,7 +335,7 @@ def run_selector(
             w = 0.25 + 2.5 * np.exp(-((d_tr - 0.010) / 0.006) ** 2) + 1.0 * (d_tr <= 0.010)
             model.fit(x_tr, target, sample_weight=w)
             pred_dist = model.predict(x_va).reshape(len(va), top_m)
-            prob = -pred_dist
+            prob = pred_dist
         else:
             model.fit(x_tr, y_tr)
             prob = model.predict_proba(x_va)[:, 1].reshape(len(va), top_m)
@@ -483,23 +492,33 @@ def main() -> None:
     test_bank = build_candidate_bank(data.test_xyz, profile=args.profile)
 
     # Add OOF/test ML predictions as candidates and as the reference solution.
-    mb = np.load("outputs/oof_multibase_cache.npz")
+    multibase_paths = [
+        "outputs/oof_multibase_cache.npz",
+        "outputs/submission_multibase_local_trap_blend.csv",
+    ]
+    _require_existing(multibase_paths, "multibase reference candidates")
+    mb = np.load(multibase_paths[0])
     multibase = mb["multibase_report_opt"]
-    multibase_test = _read_submission("outputs/submission_multibase_local_trap_blend.csv")
+    multibase_test = _read_submission(multibase_paths[1])
     train_bank["multibase_report_opt"] = multibase
     test_bank["multibase_report_opt"] = multibase_test
 
     gpu = None
     gpu_test = None
-    gpu_oof_path = Path("outputs_gpu_seq_c0p58/oof_cache.npz")
-    if gpu_oof_path.exists() and Path("outputs_gpu_seq_c0p58/submission_gpu_seq_raw.csv").exists():
-        gpu = np.load(gpu_oof_path)["gpu_seq"]
-        gpu_test = _read_submission("outputs_gpu_seq_c0p58/submission_gpu_seq_raw.csv")
+    gpu_paths = [
+        Path("outputs_gpu_seq_c0p58/oof_cache.npz"),
+        Path("outputs_gpu_seq_c0p58/submission_gpu_seq_raw.csv"),
+    ]
+    if all(path.exists() for path in gpu_paths):
+        gpu = np.load(gpu_paths[0])["gpu_seq"]
+        gpu_test = _read_submission(gpu_paths[1])
         train_bank["gpu_seq_raw"] = gpu
         test_bank["gpu_seq_raw"] = gpu_test
         for w in (0.45, 0.60):
             train_bank[f"blend_mb_gpu_w{w:g}"] = (1.0 - w) * multibase + w * gpu
             test_bank[f"blend_mb_gpu_w{w:g}"] = (1.0 - w) * multibase_test + w * gpu_test
+    elif any(path.exists() for path in gpu_paths):
+        _require_existing(gpu_paths, "optional GPU sequence candidates")
 
     ref_name = "blend_mb_gpu_w0.6" if "blend_mb_gpu_w0.6" in train_bank else "multibase_report_opt"
     ref = train_bank[ref_name]

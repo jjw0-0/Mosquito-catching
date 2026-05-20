@@ -122,9 +122,13 @@ def _kalman_ca_predict(xyz: np.ndarray, q: float, r: float) -> np.ndarray:
         filt_x.append(state.copy())
         filt_p.append(p.copy())
 
-    # RTS backward smoothing.
+    # RTS backward smoothing.  The final smoothed state equals the final
+    # filtered state, but keep the per-step buffer so future changes do not
+    # accidentally use the k=0 state for forward prediction.
+    smooth_states: list[np.ndarray | None] = [None] * t
     smooth_x = filt_x[-1]
     smooth_p = filt_p[-1]
+    smooth_states[-1] = smooth_x
     for k in range(t - 2, -1, -1):
         pf = filt_p[k]
         pp = pred_p[k + 1]
@@ -132,9 +136,12 @@ def _kalman_ca_predict(xyz: np.ndarray, q: float, r: float) -> np.ndarray:
         c = pf @ f.T @ np.linalg.inv(pp)
         smooth_x = filt_x[k] + np.einsum("naij,naj->nai", c, smooth_x - pred_x[k + 1])
         smooth_p = pf + c @ (smooth_p - pp) @ np.swapaxes(c, -1, -2)
+        smooth_states[k] = smooth_x
 
     f2 = f @ f
-    future = np.einsum("ij,naj->nai", f2, smooth_x)
+    final_state = smooth_states[-1]
+    assert final_state is not None
+    future = np.einsum("ij,naj->nai", f2, final_state)
     return future[:, :, 0]
 
 

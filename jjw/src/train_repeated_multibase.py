@@ -38,6 +38,15 @@ def _read_submission(path: str | Path) -> np.ndarray:
     return pd.read_csv(path)[["x", "y", "z"]].to_numpy(dtype=np.float64)
 
 
+def _require_existing(paths: list[Path], purpose: str) -> None:
+    missing = [str(path) for path in paths if not path.exists()]
+    if missing:
+        raise FileNotFoundError(
+            f"Missing required artifact(s) for {purpose}: {missing}. "
+            "Regenerate the previous OOF/submission files or run with --no-include-previous."
+        )
+
+
 def _make_model(seed: int) -> MultiOutputRegressor:
     return MultiOutputRegressor(
         HistGradientBoostingRegressor(
@@ -81,7 +90,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--zip-path", default="/Users/jjw/Downloads/open.zip")
     parser.add_argument("--out-dir", default="outputs_repeated_multibase")
     parser.add_argument("--seeds", default="20260518,20260519,20260520,20260521,20260522")
-    parser.add_argument("--include-previous", action="store_true", default=True)
+    parser.add_argument("--include-previous", dest="include_previous", action="store_true", default=True)
+    parser.add_argument("--no-include-previous", dest="include_previous", action="store_false")
     return parser.parse_args()
 
 
@@ -137,17 +147,25 @@ def main() -> None:
     candidates = dict(oof_best)
     test_candidates = dict(test_best)
     if args.include_previous:
-        mb_path = Path("outputs/oof_multibase_cache.npz")
-        gpu_path = Path("outputs_gpu_seq_c0p58/oof_cache.npz")
-        if mb_path.exists() and gpu_path.exists():
-            mb = np.load(mb_path)["multibase_report_opt"]
-            gpu = np.load(gpu_path)["gpu_seq"]
-            mb_test = _read_submission("outputs/submission_multibase_local_trap_blend.csv")
-            gpu_test = _read_submission("outputs_gpu_seq_c0p58/submission_gpu_seq_raw.csv")
+        previous_paths = [
+            Path("outputs/oof_multibase_cache.npz"),
+            Path("outputs/submission_multibase_local_trap_blend.csv"),
+            Path("outputs_gpu_seq_c0p58/oof_cache.npz"),
+            Path("outputs_gpu_seq_c0p58/submission_gpu_seq_raw.csv"),
+        ]
+        if all(path.exists() for path in previous_paths):
+            mb = np.load(previous_paths[0])["multibase_report_opt"]
+            mb_test = _read_submission(previous_paths[1])
+            gpu = np.load(previous_paths[2])["gpu_seq"]
+            gpu_test = _read_submission(previous_paths[3])
             for w in (0.0, 0.3, 0.45, 0.6):
                 name = f"old_mb_gpu_w{w:g}"
                 candidates[name] = (1.0 - w) * mb + w * gpu
                 test_candidates[name] = (1.0 - w) * mb_test + w * gpu_test
+        elif any(path.exists() for path in previous_paths):
+            _require_existing(previous_paths, "previous multibase/GPU blend candidates")
+        else:
+            print("[include_previous] no previous artifacts found; blending repeated candidates only", flush=True)
 
     blend = find_best_blend(candidates, data.y, seed=20260520)
     reports["blend"] = blend
