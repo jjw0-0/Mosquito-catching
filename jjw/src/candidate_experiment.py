@@ -547,6 +547,7 @@ def main() -> None:
 
     best_pred = ref
     best_selector: tuple[str, dict[str, Any]] | None = None
+    selector_oofs: dict[str, np.ndarray] = {}
     for kind in [m.strip() for m in args.models.split(",") if m.strip()]:
         pred, sel_report, _ = run_selector(
             data.train_xyz,
@@ -560,6 +561,7 @@ def main() -> None:
             seed=args.seed,
             model_kind=kind,
         )
+        selector_oofs[kind] = pred
         report["selectors"][kind] = sel_report
         if score_summary(pred, data.y)["hit"] > score_summary(best_pred, data.y)["hit"]:
             best_pred = pred
@@ -597,6 +599,7 @@ def main() -> None:
     (out_dir / "candidate_experiment_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
     )
+    np.savez_compressed(out_dir / "candidate_selector_oof.npz", y=data.y, ref=ref, best=best_pred, **selector_oofs)
     print(f"[done] {out_dir / 'candidate_experiment_report.json'}", flush=True)
 
 

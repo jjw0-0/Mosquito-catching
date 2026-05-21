@@ -82,6 +82,70 @@ def _turn_candidates(xyz: np.ndarray) -> dict[str, np.ndarray]:
     return out
 
 
+def _average_rotation_vector(d1: np.ndarray, pairs: int) -> np.ndarray:
+    """Recent average velocity rotation vector over `pairs` transitions.
+
+    The vector direction is the instantaneous turn axis and the magnitude is
+    the per-40ms turn angle.  Averaging the recent rotation vectors is a compact
+    constant-turn-rate estimate that is more stable than using only the last two
+    displacements on noisy trajectories.
+    """
+    v0 = d1[:, -(pairs + 1) : -1]
+    v1 = d1[:, -pairs:]
+    cross = np.cross(v0, v1)
+    cross_norm = np.linalg.norm(cross, axis=2)
+    dot = np.sum(v0 * v1, axis=2)
+    theta = np.arctan2(cross_norm, dot)
+    axis = cross / np.maximum(cross_norm[..., None], 1e-12)
+    rotvec = np.where(cross_norm[..., None] > 1e-12, axis * theta[..., None], 0.0)
+    weights = np.arange(1, pairs + 1, dtype=np.float64)
+    weights = weights / weights.sum()
+    return np.einsum("p,npd->nd", weights, rotvec)
+
+
+def _rotate_by_rotation_vector(v: np.ndarray, rotvec: np.ndarray) -> np.ndarray:
+    theta = np.linalg.norm(rotvec, axis=1)
+    axis = np.zeros_like(rotvec)
+    mask = theta > 1e-12
+    axis[mask] = rotvec[mask] / theta[mask, None]
+    ct = np.cos(theta)[:, None]
+    st = np.sin(theta)[:, None]
+    return v * ct + np.cross(axis, v) * st + axis * np.sum(axis * v, axis=1, keepdims=True) * (1.0 - ct)
+
+
+def _constant_turn_rate_candidates(xyz: np.ndarray) -> dict[str, np.ndarray]:
+    """Coordinated-turn-style physical candidates.
+
+    The existing acceleration grid moves along one last-acceleration vector.
+    These variants add a different family: estimate a recent angular velocity
+    from velocity direction changes, rotate the last velocity forward twice,
+    and optionally apply scalar speed acceleration.  Single candidates need not
+    beat accel_c*, but they increase family diversity for blends/selectors.
+    """
+    d1 = np.diff(xyz, axis=1)
+    speed = np.linalg.norm(d1, axis=2)
+    speed_delta = np.diff(speed, axis=1)
+    last = xyz[:, -1]
+    out: dict[str, np.ndarray] = {}
+    for pairs in (1, 2, 3, 5):
+        rotvec = _average_rotation_vector(d1, pairs)
+        scalar_speed_accel = speed_delta[:, -pairs:].mean(axis=1)
+        for turn_gain in (-0.25, 0.0, 0.25, 0.50, 0.75, 1.0):
+            for speed_gain in (0.0, 0.25, 0.50, 0.75):
+                for decay in (0.75, 1.0):
+                    v = d1[:, -1].copy()
+                    pred = last.copy()
+                    step_rot = rotvec * turn_gain
+                    for step in range(2):
+                        v = _rotate_by_rotation_vector(v, step_rot * (decay**step))
+                        v_norm = np.linalg.norm(v, axis=1)
+                        next_speed = np.maximum(v_norm + speed_gain * scalar_speed_accel, 0.0)
+                        v = v * (next_speed / np.maximum(v_norm, 1e-12))[:, None]
+                        pred = pred + v
+                    out[f"ctr_p{pairs}_tg{turn_gain:g}_sg{speed_gain:g}_d{decay:g}"] = pred
+    return out
+
+
 def _kalman_ca_predict(xyz: np.ndarray, q: float, r: float) -> np.ndarray:
     """Constant-acceleration Kalman filter/smoother, then 2-step prediction.
 
@@ -193,6 +257,7 @@ def build_candidate_bank(xyz: np.ndarray, profile: str = "strong") -> dict[str, 
                     out[f"sg_w{window}_p{poly}_poly_d{degree}"] = _poly_extrapolate(smooth, min(window, 11), degree)
 
     out.update(_turn_candidates(xyz))
+    out.update(_constant_turn_rate_candidates(xyz))
 
     # Kalman/RTS candidates.  A small grid is enough; the selector will decide.
     if profile in {"strong", "full"}:
@@ -231,6 +296,6 @@ def candidate_group_features(name: str) -> CandidateGroup:
         is_poly=float("poly" in lower or "linear" in lower or "quad" in lower),
         is_sg=float(lower.startswith("sg_") or "_sg_" in lower),
         is_kalman=float("kalman" in lower),
-        is_turn=float("turn" in lower),
+        is_turn=float("turn" in lower or lower.startswith("ctr_")),
         is_ml=float("multibase" in lower or "gpu" in lower or "hgb" in lower),
     )
