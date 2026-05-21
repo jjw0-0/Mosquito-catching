@@ -35,6 +35,7 @@ class TorchConfig:
     epochs: int = 160
     patience: int = 35
     batch_size: int = 512
+    arch: str = "transformer"
     hidden: int = 96
     layers: int = 2
     heads: int = 4
@@ -43,6 +44,10 @@ class TorchConfig:
     weight_decay: float = 2e-4
     boundary_loss: float = 0.30
     noise_std: float = 0.015
+    include_jerk: bool = False
+    flip_aug: bool = False
+    flip_tta: bool = False
+    zero_init_head: bool = False
     device: str = "auto"
     blend_with: str = "outputs/submission_multibase_local_trap_blend.csv"
     no_submissions: bool = False
@@ -73,6 +78,7 @@ def _project_local(vectors: np.ndarray, basis: np.ndarray) -> np.ndarray:
 def build_sequence_inputs(
     xyz: np.ndarray,
     base: np.ndarray,
+    include_jerk: bool = False,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """Build local-frame sequence and small dense features.
 
@@ -87,17 +93,24 @@ def build_sequence_inputs(
     last = xyz[:, -1]
     d1 = np.diff(xyz, axis=1)
     d2 = np.diff(d1, axis=1)
+    d3 = np.diff(d2, axis=1)
 
     centered = xyz - last[:, None, :]
     vel = np.concatenate([np.zeros_like(xyz[:, :1]), d1], axis=1)
     acc = np.concatenate([np.zeros_like(xyz[:, :2]), d2], axis=1)
+    jerk = np.concatenate([np.zeros_like(xyz[:, :3]), d3], axis=1)
 
     centered_local = _project_local(centered, basis) / scale[:, None, :]
     vel_local = _project_local(vel, basis) / scale[:, None, :]
     acc_local = _project_local(acc, basis) / scale[:, None, :]
+    jerk_local = _project_local(jerk, basis) / scale[:, None, :]
     t = np.linspace(-1.0, 1.0, xyz.shape[1], dtype=np.float64)
     t_feat = np.broadcast_to(t[None, :, None], (xyz.shape[0], xyz.shape[1], 1))
-    seq = np.concatenate([centered_local, vel_local, acc_local, t_feat], axis=2)
+    seq_blocks = [centered_local, vel_local, acc_local]
+    if include_jerk:
+        seq_blocks.append(jerk_local)
+    seq_blocks.append(t_feat)
+    seq = np.concatenate(seq_blocks, axis=2)
 
     base_delta = base - last
     base_delta_local = np.einsum("nc,nkc->nk", base_delta, basis) / scale
@@ -127,6 +140,51 @@ def fit_standardize(x: np.ndarray, idx: np.ndarray) -> tuple[np.ndarray, np.ndar
 
 def standardize(x: np.ndarray, mean: np.ndarray, std: np.ndarray) -> np.ndarray:
     return np.clip((x - mean) / std, -8.0, 8.0).astype(np.float32)
+
+
+def fit_standardize_with_optional_flip(
+    dense: np.ndarray,
+    idx: np.ndarray,
+    dense_flip: np.ndarray | None,
+    include_flip: bool,
+) -> tuple[np.ndarray, np.ndarray]:
+    if include_flip:
+        if dense_flip is None:
+            raise ValueError("flip standardization requested without flipped dense features")
+        x = np.concatenate([dense[idx], dense_flip[idx]], axis=0)
+        mean = x.mean(axis=0, keepdims=True)
+        std = x.std(axis=0, keepdims=True)
+        std = np.where(std < 1e-6, 1.0, std)
+        return mean.astype(np.float32), std.astype(np.float32)
+    return fit_standardize(dense, idx)
+
+
+def mirror_local_y_xyz(xyz: np.ndarray) -> np.ndarray:
+    """Reflect a trajectory across the local forward/up plane.
+
+    This is the dense-consistent counterpart to flipping the local sequence Y
+    channel.  Rebuilding dense features from the mirrored trajectory avoids
+    mixing a flipped sequence branch with stale unflipped dense context.
+    """
+    xyz = np.asarray(xyz, dtype=np.float64)
+    basis, _ = trajectory_basis_and_scale(xyz)
+    last = xyz[:, -1]
+    local = np.einsum("ntc,nkc->ntk", xyz - last[:, None, :], basis)
+    local[:, :, 1] *= -1.0
+    return last[:, None, :] + np.einsum("ntk,nkc->ntc", local, basis)
+
+
+def mirror_local_y_points(points: np.ndarray, xyz: np.ndarray) -> np.ndarray:
+    points = np.asarray(points, dtype=np.float64)
+    basis, _ = trajectory_basis_and_scale(xyz)
+    last = xyz[:, -1]
+    local = np.einsum("nc,nkc->nk", points - last, basis)
+    local[:, 1] *= -1.0
+    return last + np.einsum("nk,nkc->nc", local, basis)
+
+
+def build_dense_context(xyz: np.ndarray, dense_small: np.ndarray) -> np.ndarray:
+    return np.concatenate([dense_small, build_features(xyz).astype(np.float32)], axis=1)
 
 
 class ResidualSequenceNet(nn.Module):
@@ -181,6 +239,91 @@ class ResidualSequenceNet(nn.Module):
         return self.head(torch.cat([last, mean, std, dense_h], dim=1))
 
 
+class BiGRUAttentionNet(nn.Module):
+    """Agent-centric GRU residual model used as a diversity candidate.
+
+    It intentionally keeps the same local-scaled residual contract as
+    ResidualSequenceNet, so OOF blending and candidate selection can compare it
+    directly against the existing Transformer sequence model.
+    """
+
+    def __init__(
+        self,
+        seq_dim: int,
+        dense_dim: int,
+        hidden: int,
+        layers: int,
+        dropout: float,
+    ) -> None:
+        super().__init__()
+        self.gru = nn.GRU(
+            input_size=seq_dim,
+            hidden_size=hidden,
+            num_layers=layers,
+            batch_first=True,
+            bidirectional=True,
+            dropout=dropout if layers > 1 else 0.0,
+        )
+        self.attn = nn.Linear(hidden * 2, 1)
+        self.dense_proj = nn.Sequential(
+            nn.Linear(dense_dim, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
+        self.head = nn.Sequential(
+            nn.Linear(hidden * 7, hidden * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(hidden * 2, hidden),
+            nn.GELU(),
+            nn.Linear(hidden, 3),
+        )
+
+    def forward(self, seq: torch.Tensor, dense: torch.Tensor) -> torch.Tensor:
+        h, _ = self.gru(seq)
+        attn = torch.softmax(self.attn(h), dim=1)
+        context = torch.sum(attn * h, dim=1)
+        last = h[:, -1]
+        mean = h.mean(dim=1)
+        dense_h = self.dense_proj(dense)
+        return self.head(torch.cat([context, last, mean, dense_h], dim=1))
+
+
+def _zero_init_last_linear(module: nn.Module) -> None:
+    for submodule in reversed(list(module.modules())):
+        if isinstance(submodule, nn.Linear) and submodule.out_features == 3:
+            nn.init.zeros_(submodule.weight)
+            nn.init.zeros_(submodule.bias)
+            return
+    raise ValueError("could not find final 3D Linear head to zero-initialize")
+
+
+def make_sequence_model(cfg: TorchConfig, seq_dim: int, dense_dim: int) -> nn.Module:
+    if cfg.arch == "transformer":
+        model: nn.Module = ResidualSequenceNet(
+            seq_dim=seq_dim,
+            dense_dim=dense_dim,
+            hidden=cfg.hidden,
+            layers=cfg.layers,
+            heads=cfg.heads,
+            dropout=cfg.dropout,
+        )
+    elif cfg.arch == "bigru_attention":
+        model = BiGRUAttentionNet(
+            seq_dim=seq_dim,
+            dense_dim=dense_dim,
+            hidden=cfg.hidden,
+            layers=cfg.layers,
+            dropout=cfg.dropout,
+        )
+    else:
+        raise ValueError(f"unknown torch arch: {cfg.arch}")
+    if cfg.zero_init_head:
+        _zero_init_last_linear(model)
+    return model
+
+
 def weighted_hit_loss(
     pred: torch.Tensor,
     target: torch.Tensor,
@@ -205,14 +348,26 @@ def predict_scaled(
     dense: np.ndarray,
     device: torch.device,
     batch_size: int,
+    flip_tta: bool = False,
+    seq_flip: np.ndarray | None = None,
+    dense_flip: np.ndarray | None = None,
 ) -> np.ndarray:
     model.eval()
+    if flip_tta and (seq_flip is None or dense_flip is None):
+        raise ValueError("flip_tta requires dense-consistent flipped seq and dense arrays")
     outs: list[np.ndarray] = []
     for start in range(0, len(seq), batch_size):
         end = min(len(seq), start + batch_size)
         s = torch.as_tensor(seq[start:end], device=device)
         d = torch.as_tensor(dense[start:end], device=device)
-        outs.append(model(s, d).detach().cpu().numpy())
+        pred = model(s, d)
+        if flip_tta:
+            sf = torch.as_tensor(seq_flip[start:end], device=device)
+            df = torch.as_tensor(dense_flip[start:end], device=device)
+            pred_flip = model(sf, df)
+            pred_flip[:, 1] *= -1.0
+            pred = 0.5 * (pred + pred_flip)
+        outs.append(pred.detach().cpu().numpy())
     return np.concatenate(outs, axis=0).astype(np.float64)
 
 
@@ -235,6 +390,8 @@ def train_fold(
     va_idx: np.ndarray,
     seq: np.ndarray,
     dense_all: np.ndarray,
+    seq_flip: np.ndarray | None,
+    dense_flip_all: np.ndarray | None,
     target: np.ndarray,
     base: np.ndarray,
     y: np.ndarray,
@@ -242,23 +399,22 @@ def train_fold(
     scale: np.ndarray,
     sample_weight: np.ndarray,
     device: torch.device,
-) -> tuple[np.ndarray, dict[str, Any], dict[str, np.ndarray], ResidualSequenceNet]:
-    dense_mean, dense_std = fit_standardize(dense_all, tr_idx)
+) -> tuple[np.ndarray, dict[str, Any], dict[str, np.ndarray], nn.Module]:
+    use_flip_inputs = cfg.flip_aug or cfg.flip_tta
+    if use_flip_inputs and (seq_flip is None or dense_flip_all is None):
+        raise ValueError("flip augmentation/TTA requires precomputed flipped seq and dense inputs")
+    dense_mean, dense_std = fit_standardize_with_optional_flip(dense_all, tr_idx, dense_flip_all, use_flip_inputs)
     dense = standardize(dense_all, dense_mean, dense_std)
+    dense_flip = standardize(dense_flip_all, dense_mean, dense_std) if dense_flip_all is not None else None
 
-    model = ResidualSequenceNet(
-        seq_dim=seq.shape[2],
-        dense_dim=dense.shape[1],
-        hidden=cfg.hidden,
-        layers=cfg.layers,
-        heads=cfg.heads,
-        dropout=cfg.dropout,
-    ).to(device)
+    model = make_sequence_model(cfg, seq_dim=seq.shape[2], dense_dim=dense.shape[1]).to(device)
     opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
     scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(opt, T_max=max(cfg.epochs, 1), eta_min=cfg.lr * 0.06)
 
     tr_seq = torch.as_tensor(seq[tr_idx], device=device)
     tr_dense = torch.as_tensor(dense[tr_idx], device=device)
+    tr_seq_flip = torch.as_tensor(seq_flip[tr_idx], device=device) if seq_flip is not None else None
+    tr_dense_flip = torch.as_tensor(dense_flip[tr_idx], device=device) if dense_flip is not None else None
     tr_target = torch.as_tensor(target[tr_idx], device=device)
     tr_scale = torch.as_tensor(scale[tr_idx].astype(np.float32), device=device)
     tr_weight = torch.as_tensor(sample_weight[tr_idx].astype(np.float32), device=device)
@@ -276,12 +432,28 @@ def train_fold(
         for start in range(0, n, cfg.batch_size):
             batch = order[start : start + cfg.batch_size]
             s = tr_seq[batch]
+            y_batch = tr_target[batch]
+            if cfg.flip_aug:
+                flip_mask = torch.rand(len(batch), device=device) < 0.5
+                if bool(flip_mask.any()):
+                    if tr_seq_flip is None or tr_dense_flip is None:
+                        raise ValueError("flip_aug requires flipped training tensors")
+                    s = s.clone()
+                    d_batch = tr_dense[batch].clone()
+                    s[flip_mask] = tr_seq_flip[batch][flip_mask]
+                    d_batch[flip_mask] = tr_dense_flip[batch][flip_mask]
+                    y_batch = y_batch.clone()
+                    y_batch[flip_mask, 1] *= -1.0
+                else:
+                    d_batch = tr_dense[batch]
+            else:
+                d_batch = tr_dense[batch]
             if cfg.noise_std > 0:
                 s = s + torch.randn_like(s) * cfg.noise_std
-            pred = model(s, tr_dense[batch])
+            pred = model(s, d_batch)
             loss = weighted_hit_loss(
                 pred,
-                tr_target[batch],
+                y_batch,
                 tr_scale[batch],
                 tr_weight[batch],
                 cfg.boundary_loss,
@@ -293,7 +465,16 @@ def train_fold(
             losses.append(float(loss.detach().cpu()))
         scheduler.step()
 
-        pred_scaled = predict_scaled(model, seq[va_idx], dense[va_idx], device, cfg.batch_size)
+        pred_scaled = predict_scaled(
+            model,
+            seq[va_idx],
+            dense[va_idx],
+            device,
+            cfg.batch_size,
+            flip_tta=cfg.flip_tta,
+            seq_flip=None if seq_flip is None else seq_flip[va_idx],
+            dense_flip=None if dense_flip is None else dense_flip[va_idx],
+        )
         pred_abs = local_scaled_to_abs(base[va_idx], pred_scaled, basis[va_idx], scale[va_idx])
         summary = score_summary(pred_abs, y[va_idx])
         if best_summary is None or summary["hit"] > best_summary["hit"] or (
@@ -316,7 +497,16 @@ def train_fold(
 
     assert best_state is not None and best_summary is not None
     model.load_state_dict(best_state)
-    pred_scaled = predict_scaled(model, seq[va_idx], dense[va_idx], device, cfg.batch_size)
+    pred_scaled = predict_scaled(
+        model,
+        seq[va_idx],
+        dense[va_idx],
+        device,
+        cfg.batch_size,
+        flip_tta=cfg.flip_tta,
+        seq_flip=None if seq_flip is None else seq_flip[va_idx],
+        dense_flip=None if dense_flip is None else dense_flip[va_idx],
+    )
     pred_abs = local_scaled_to_abs(base[va_idx], pred_scaled, basis[va_idx], scale[va_idx])
     fold_info = {"fold": fold, "best_epoch": best_epoch, "summary": best_summary}
     stats = {"dense_mean": dense_mean, "dense_std": dense_std}
@@ -359,6 +549,7 @@ def parse_args() -> TorchConfig:
     parser.add_argument("--epochs", type=int, default=TorchConfig.epochs)
     parser.add_argument("--patience", type=int, default=TorchConfig.patience)
     parser.add_argument("--batch-size", type=int, default=TorchConfig.batch_size)
+    parser.add_argument("--arch", choices=["transformer", "bigru_attention"], default=TorchConfig.arch)
     parser.add_argument("--hidden", type=int, default=TorchConfig.hidden)
     parser.add_argument("--layers", type=int, default=TorchConfig.layers)
     parser.add_argument("--heads", type=int, default=TorchConfig.heads)
@@ -367,6 +558,10 @@ def parse_args() -> TorchConfig:
     parser.add_argument("--weight-decay", type=float, default=TorchConfig.weight_decay)
     parser.add_argument("--boundary-loss", type=float, default=TorchConfig.boundary_loss)
     parser.add_argument("--noise-std", type=float, default=TorchConfig.noise_std)
+    parser.add_argument("--include-jerk", action="store_true", default=TorchConfig.include_jerk)
+    parser.add_argument("--flip-aug", action="store_true", default=TorchConfig.flip_aug)
+    parser.add_argument("--flip-tta", action="store_true", default=TorchConfig.flip_tta)
+    parser.add_argument("--zero-init-head", action="store_true", default=TorchConfig.zero_init_head)
     parser.add_argument("--device", default=TorchConfig.device)
     parser.add_argument("--blend-with", default=TorchConfig.blend_with)
     parser.add_argument("--no-submissions", action="store_true")
@@ -392,12 +587,34 @@ def main() -> None:
     base_train = phys_train[cfg.residual_base]
     base_test = phys_test[cfg.residual_base]
 
-    seq_train, dense_small_train, basis_train, scale_train = build_sequence_inputs(data.train_xyz, base_train)
-    seq_test, dense_small_test, basis_test, scale_test = build_sequence_inputs(data.test_xyz, base_test)
+    seq_train, dense_small_train, basis_train, scale_train = build_sequence_inputs(
+        data.train_xyz, base_train, include_jerk=cfg.include_jerk
+    )
+    seq_test, dense_small_test, basis_test, scale_test = build_sequence_inputs(
+        data.test_xyz, base_test, include_jerk=cfg.include_jerk
+    )
     # Add the proven hand-engineered feature vector as dense context.  It is
     # standardized fold-wise below to avoid validation leakage.
-    dense_train = np.concatenate([dense_small_train, build_features(data.train_xyz).astype(np.float32)], axis=1)
-    dense_test = np.concatenate([dense_small_test, build_features(data.test_xyz).astype(np.float32)], axis=1)
+    dense_train = build_dense_context(data.train_xyz, dense_small_train)
+    dense_test = build_dense_context(data.test_xyz, dense_small_test)
+
+    seq_train_flip = None
+    dense_train_flip = None
+    seq_test_flip = None
+    dense_test_flip = None
+    if cfg.flip_aug or cfg.flip_tta:
+        train_xyz_flip = mirror_local_y_xyz(data.train_xyz)
+        test_xyz_flip = mirror_local_y_xyz(data.test_xyz)
+        base_train_flip = mirror_local_y_points(base_train, data.train_xyz)
+        base_test_flip = mirror_local_y_points(base_test, data.test_xyz)
+        seq_train_flip, dense_small_train_flip, _, _ = build_sequence_inputs(
+            train_xyz_flip, base_train_flip, include_jerk=cfg.include_jerk
+        )
+        seq_test_flip, dense_small_test_flip, _, _ = build_sequence_inputs(
+            test_xyz_flip, base_test_flip, include_jerk=cfg.include_jerk
+        )
+        dense_train_flip = build_dense_context(train_xyz_flip, dense_small_train_flip)
+        dense_test_flip = build_dense_context(test_xyz_flip, dense_small_test_flip)
 
     residual_local = np.einsum("nc,nkc->nk", data.y - base_train, basis_train)
     target = (residual_local / scale_train).astype(np.float32)
@@ -421,6 +638,8 @@ def main() -> None:
             va_idx,
             seq_train,
             dense_train,
+            seq_train_flip,
+            dense_train_flip,
             target,
             base_train,
             data.y,
@@ -432,7 +651,19 @@ def main() -> None:
         oof[va_idx] = pred_abs
         fold_infos.append(info)
         dense_test_fold = standardize(dense_test, stats["dense_mean"], stats["dense_std"])
-        test_scaled = predict_scaled(model, seq_test, dense_test_fold, device, cfg.batch_size)
+        dense_test_fold_flip = (
+            standardize(dense_test_flip, stats["dense_mean"], stats["dense_std"]) if dense_test_flip is not None else None
+        )
+        test_scaled = predict_scaled(
+            model,
+            seq_test,
+            dense_test_fold,
+            device,
+            cfg.batch_size,
+            flip_tta=cfg.flip_tta,
+            seq_flip=seq_test_flip,
+            dense_flip=dense_test_fold_flip,
+        )
         test_scaled_preds.append(test_scaled)
         fold_models.append(
             {

@@ -77,8 +77,50 @@ HGB 계열과 다른 inductive bias를 만들기 위해 PyTorch 기반 local-fra
 - `outputs_gpu_seq_c0p58/submission_gpu_seq_raw_x_multibase_w600.csv`
 - `outputs_gpu_seq_c0p58/submission_gpu_seq_raw_x_multibase_w450.csv`
 
+## Candidate bank / selector / repeated KFold 결과
+
+0.7+를 노리기 위해 candidate bank와 repeated KFold bagging 실험을 추가했습니다.
+
+```bash
+/opt/homebrew/bin/python3.13 -m src.candidate_experiment \
+  --out-dir outputs_candidate_v3_gain \
+  --top-m 72 \
+  --profile strong \
+  --seed 20260520 \
+  --models hgb_gain,hgb
+```
+
+핵심 진단:
+
+- 전체 candidate oracle: `0.8738`
+- ref(`multibase + gpu raw w0.60`) OOF: `0.6725`
+- candidate selector best OOF: `0.6738`
+
+즉 후보 천장은 충분히 높지만, selector가 아직 oracle headroom을 크게 회수하지는 못했습니다.
+
+가장 강한 실전 후보는 repeated KFold local-trap bagging입니다.
+
+```bash
+/opt/homebrew/bin/python3.13 -m src.train_repeated_multibase \
+  --out-dir outputs_repeated_multibase \
+  --seeds 20260518,20260519,20260520,20260521,20260522
+```
+
+결과:
+
+- repeated `c0p46`: OOF `0.6701`
+- repeated `c0p5`: OOF `0.6705`
+- repeated `c0p58`: OOF `0.6695`
+- repeated `c0p6`: OOF `0.6723`
+- repeated + 기존 GPU/MB blend: OOF `0.6742`
+- 8-seed repeated 재검증: OOF `0.6740`으로 5-seed보다 낮아, 현재는 5-seed 산출물이 우선
+
+현재 최우선 제출 후보:
+
+- `outputs_repeated_multibase/submission_repeated_multibase_blend.csv`
+
 ## 규칙 준수
 
 - test 데이터는 예측 생성에만 사용합니다.
 - 원격 API/외부 서버 모델을 사용하지 않습니다.
-- 기본 환경의 `numpy`, `pandas`, `sklearn`만으로 실행됩니다.
+- 기본 실험은 `numpy`, `pandas`, `sklearn`, `scipy`로 실행되며, GPU sequence 실험은 선택적으로 `torch`를 사용합니다.
